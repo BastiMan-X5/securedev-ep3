@@ -1,0 +1,58 @@
+rules:
+  - id: flask-xss-reflejado
+    mode: taint
+    languages: [python]
+    severity: ERROR
+    message: >-
+      XSS reflejado (CWE-79): un dato del usuario (request.args) se devuelve en la
+      respuesta HTML sin validar ni escapar.
+    metadata:
+      cwe: "CWE-79: Cross-site Scripting"
+      owasp: "A03:2021 - Injection"
+    pattern-sources:
+      - pattern: flask.request.args.get(...)
+      - pattern: flask.request.args[...]
+    pattern-sanitizers:
+      - pattern: markupsafe.escape(...)
+      - pattern: flask.escape(...)
+      - pattern: html.escape(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-inside: |
+              @$APP.route(...)
+              def $F(...):
+                ...
+          - pattern: return $X
+          - focus-metavariable: $X
+
+  - id: flask-debug-activado
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Flask con debug=True (CWE-94): expone el depurador de Werkzeug y permite
+      ejecucion remota de codigo. Nunca usar en produccion.
+    metadata:
+      cwe: "CWE-94: Code Injection"
+      owasp: "A05:2021 - Security Misconfiguration"
+    pattern: $APP.run(..., debug=True, ...)
+
+  - id: flask-escucha-todas-interfaces
+    languages: [python]
+    severity: WARNING
+    message: >-
+      La app escucha en 0.0.0.0 desde el codigo (CWE-200). Exponerla debe decidirse en
+      la infraestructura (contenedor / proxy), no en el codigo.
+    metadata:
+      cwe: "CWE-200: Exposure of Sensitive Information"
+    pattern: $APP.run(..., host="0.0.0.0", ...)
+
+  - id: secreto-hardcodeado
+    languages: [python]
+    severity: ERROR
+    message: Posible secreto escrito directamente en el codigo (CWE-798).
+    metadata:
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+    patterns:
+      - pattern-either:
+          - pattern: $APP.secret_key = "..."
+          - pattern: $APP.config["SECRET_KEY"] = "..."
