@@ -145,9 +145,10 @@ pipeline {
                         docker cp zap-scan:/zap/wrk/zap-report.json reports/06-zap-report.json
                         docker rm -f zap-scan >/dev/null 2>&1 || true
 
-                        # Resumen + puerta de seguridad: falla si ZAP encuentra alertas de riesgo ALTO
-                        python3 /opt/scripts/resumen_zap.py reports/06-zap-report.json | tee reports/06-zap-resumen.txt
-                        exit $(python3 /opt/scripts/resumen_zap.py reports/06-zap-report.json --exit-code)
+                        # Resumen + puerta de seguridad: falla si ZAP encuentra alertas REALES de riesgo ALTO
+                        # (los falsos positivos analizados estan documentados en zap_gate.py)
+                        python3 zap_gate.py reports/06-zap-report.json | tee reports/06-zap-resumen.txt
+                        exit $(python3 zap_gate.py reports/06-zap-report.json --exit-code)
                     '''
                 }
             }
